@@ -1,112 +1,83 @@
 version: '3.3'
 
 services:
-# Gracefully starts:
-# - Three Cassandra 3.11 backends with included Management API
-# - One Stargate node offering REST, GraphQL and Document endpoints
 
-  backend-1:
-    image: datastax/cassandra-mgmtapi-3_11_10:v0.1.23
-    container_name: backend-1
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - --log.level=INFO
+      - --api.insecure=true # Run the Treafik dashboard insecurely
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.traefik.address=:9080 # Traefik dashboard
+      - --entrypoints.auth.address=:8081 # auth entrypoint
+      - --entrypoints.rest.address=:8082 # rest entrypoint
+      - --entrypoints.graphql.address=:8080 # graphql entrypoint
+    ports:
+      - 9080:9080 # Expose Traefik dashboard to outside of Traefik container
+      - 8081:8081 # Expose auth entrypoint to outside of Traefik container
+      - 8082:8082 # Expose rest entrypoint to outside of Traefik container
+      - 8080:8080 # Expose graphql entrypoint to outside of Traefik container
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - backend
-    ports:
-      # Management API (http://localhost:9081/api/v0/probes/liveness)
-      - 9081:8080
-    environment:
-      - HEAP_NEWSIZE=2G
-      - MAX_HEAP_SIZE=4G
-      - CASSANDRA_SEEDS=backend-1
-      - CASSANDRA_CLUSTER_NAME=stargate
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_RACK=rack1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-    healthcheck:
-      test: curl --fail http://localhost:8080/api/v0/probes/liveness || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  backend-2:
-    image: datastax/cassandra-mgmtapi-3_11_10:v0.1.23
-    container_name: backend-2
-    networks:
-      - backend
-    ports:
-      # Management API (http://localhost:9082/api/v0/probes/liveness)
-      - 9082:8080
-    depends_on:
-      - backend-1
-    environment:
-      - HEAP_NEWSIZE=2G
-      - MAX_HEAP_SIZE=4G
-      - CASSANDRA_SEEDS=backend-1
-      - CASSANDRA_CLUSTER_NAME=stargate
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_RACK=rack1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-    healthcheck:
-      test: curl --fail http://localhost:8080/api/v0/probes/liveness || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    depends_on:
-      backend-1:
-        condition: service_healthy
-
-  backend-3:
-    image: datastax/cassandra-mgmtapi-3_11_10:v0.1.23
-    container_name: backend-3
-    networks:
-      - backend
-    ports:
-      # Management API (http://localhost:9083/api/v0/probes/liveness)
-      - 9083:8080
-    depends_on:
-      - backend-2
-    environment:
-      - HEAP_NEWSIZE=2G
-      - MAX_HEAP_SIZE=4G
-      - CASSANDRA_SEEDS=backend-1
-      - CASSANDRA_CLUSTER_NAME=stargate
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_RACK=rack1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-    healthcheck:
-      test: curl --fail http://localhost:8080/api/v0/probes/liveness || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    depends_on:
-      backend-2:
-        condition: service_healthy
 
   stargate:
-    image: stargateio/stargate-3_11:v1.0.11
-    container_name: stargate
+    image: stargateio/stargate-dse-68:v1.0.8
     depends_on: 
-      - backend-1
+      - backend
     networks:
       - backend
-    ports:
-      # GraphQL interface for CRUD (http://localhost:8080/api/playground)
-      - 8080:8080
-      # Rest authorization (token)
-      - 8081:8081
-      # REST for CRUD (http://localhost:8082/swagger-ui)
-      - 8082:8082
-      # CQL Service
-      - 9042:9042
     environment:
       - JAVA_OPTS="-Xmx2G"
       - CLUSTER_NAME=stargate
-      - CLUSTER_VERSION=3.11
-      - SEED=backend-1
+      - DSE=1
+      - CLUSTER_VERSION=6.8
+      - SEED=backend
       - DATACENTER_NAME=dc1
       - RACK_NAME=rack1
-    depends_on:
-      backend-3:
-        condition: service_healthy
+    expose:
+      - 8081 # auth port
+      - 8082 # rest port
+      - 8080 # graphql port
+    labels:
+      - traefik.enable=true
+      # Auth endpoint
+      - traefik.http.routers.stargate-auth.rule=Host(`stargate.localhost`) && PathPrefix(`/`)
+      - traefik.http.routers.stargate-auth.service=stargate-auth
+      - traefik.http.routers.stargate-auth.entrypoints=auth # Listen to external auth port (entrypoint)
+      - traefik.http.services.stargate-auth.loadbalancer.server.port=8081 # Loadbalance to internal auth port for authorization
+      # REST endpoint
+      - traefik.http.routers.stargate-rest.rule=Host(`stargate.localhost`) && PathPrefix(`/`)
+      - traefik.http.routers.stargate-rest.service=stargate-rest
+      - traefik.http.routers.stargate-rest.entrypoints=rest # Listen to external rest port (entrypoint)
+      - traefik.http.services.stargate-rest.loadbalancer.server.port=8082 # Loadbalance to internal rest port for authorization
+      # GraphQL endpoint
+      - traefik.http.routers.stargate-graphql.rule=Host(`stargate.localhost`) && PathPrefix(`/`)
+      - traefik.http.routers.stargate-graphql.service=stargate-graphql
+      - traefik.http.routers.stargate-graphql.entrypoints=graphql # Listen to external graphql port (entrypoint)
+      - traefik.http.services.stargate-graphql.loadbalancer.server.port=8082 # Loadbalance to internal graphql port for authorization
 
+  backend:
+    image: datastax/dse-server:6.8.10
+    networks:
+      - backend
+    environment:
+      - HEAP_NEWSIZE=1G
+      - MAX_HEAP_SIZE=4G
+      - DS_LICENSE=accept
+      - CLUSTER_NAME=stargate
+      - DC=dc1
+      - RACK=rack1
+      - SNITCH=GossipingPropertyFileSnitch
+      - SEEDS=backend
+    # Allow DSE to lock memory with mlock
+    cap_add:
+    - IPC_LOCK
+    ulimits:
+      memlock: -1
+    
 networks:
   backend:
