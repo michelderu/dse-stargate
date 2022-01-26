@@ -25,7 +25,7 @@ services:
       - backend
 
   stargate:
-    image: stargateio/stargate-dse-68:v1.0.8
+    image: stargateio/stargate-dse-68:v1.0.47
     depends_on: 
       - backend
     networks:
@@ -61,7 +61,7 @@ services:
       - traefik.http.services.stargate-graphql.loadbalancer.server.port=8082 # Loadbalance to internal graphql port for authorization
 
   backend:
-    image: datastax/dse-server:6.8.10
+    image: datastax/dse-server:6.8.19-1
     networks:
       - backend
     environment:
@@ -73,6 +73,10 @@ services:
       - RACK=rack1
       - SNITCH=GossipingPropertyFileSnitch
       - SEEDS=backend
+    # Docker images provided by DataStax include a startup script that swaps DataStax Enterprise (DSE) configuration files
+    # found in the /config volume directory with the configuration file in the default location on the container.
+    volumes:
+      - ./configuration:/config
     # Allow DSE to lock memory with mlock
     cap_add:
     - IPC_LOCK
