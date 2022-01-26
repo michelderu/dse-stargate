@@ -32,9 +32,9 @@ docker exec -it dse-stargate_backend_1 cqlsh
 ```
 
 ## Configuration changes
-Normally the Cassandra config is located in `/opt/dse/resources/cassandra/conf/cassandra.yaml`. Docker images provided by DataStax include a startup script that swaps DataStax Enterprise (DSE) configuration files found in the `/config` volume directory with the configuration file in the default location on the container. In this docker-compose set up, a volume mapping has been created that allows for local updates to the `cassandra.yaml` to be read by DSE running in the container.
+Normally the Cassandra config is located in `/opt/dse/resources/cassandra/conf/cassandra.yaml`. The DSE config is located in `/opt/dse/resources/dse/conf/dse.yaml`. Docker images provided by DataStax include a startup script that swaps DataStax Enterprise (DSE) configuration files found in the `/config` volume directory with the configuration file in the default location on the container. In this docker-compose set up, a volume mapping has been created that allows for local updates to the `cassandra.yaml` to be read by DSE running in the container.
 
-Because of this, we can change settings, such as *Guardrails*.
+Now that we have control over the configuration, we can change settings such as *Guardrails*.
 
 ## Test some guardrails
 First create a keyspace:
