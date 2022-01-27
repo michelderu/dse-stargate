@@ -30,6 +30,15 @@ After startup `docker stats` will be started for insight in resource consumption
 ```sh
 docker exec -it dse-stargate_backend_1 cqlsh
 ```
+# Guardrails
+In DSE, Guardrails have been introduced to create configurable trip-wires in Cassandra that will either warn or error and block any operation that violates known anti-patterns. In DSE 6.8, DataStax is releasing the first set of Guardrails which include codified, best-practices such as:
+- Consistency levels allowed
+- Payload sizes
+- Column sizes
+- Collection sizes
+- Number of indices 
+- Number of materialized views
+- And more
 
 ## Configuration changes
 Normally the Cassandra config is located in `/opt/dse/resources/cassandra/conf/cassandra.yaml`. The DSE config is located in `/opt/dse/resources/dse/conf/dse.yaml`. Docker images provided by DataStax include a startup script that swaps DataStax Enterprise (DSE) configuration files found in the `/config` volume directory with the configuration file in the default location on the container. In this docker-compose set up, a volume mapping has been created that allows for local updates to the `cassandra.yaml` to be read by DSE running in the container.
