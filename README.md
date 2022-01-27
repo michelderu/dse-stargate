@@ -20,7 +20,7 @@ Traefik will listen to the hostname `stargate.localhost` for loadbalancing Starg
 
 ## Scripted startup
 There is a script provided to startup the cluster.
-- `start-d1s2t1.sh` will start the cluster with 1 node of DSE, 2 nodes of Stargate and 1 node of Traefik
+- `start-d1s2.sh` will start the cluster with 1 node of DSE, 2 nodes of Stargate and 1 node of Traefik
 
 DSE is configured with a maximum heap size of 4 GB. Stargate with a heapsize of 2 GB but will mostly use 1 GB.
 
