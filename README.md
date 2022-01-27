@@ -46,14 +46,6 @@ Normally the Cassandra config is located in `/opt/dse/resources/cassandra/conf/c
 Now that we have control over the configuration, we can change settings such as *Guardrails*.
 
 ## Test some guardrails
-First create a keyspace:
-```sql
-CREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-```
-Now let's create a table with the default guardrail settings:
-```sql
-CREATE TABLE first_table (first_column text PRIMARY KEY, second_column text);
-```
 Change the guardrails in `cassandra.yaml`:
 ```yaml
 # Guardrails settings.
