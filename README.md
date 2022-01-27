@@ -28,7 +28,7 @@ After startup `docker stats` will be started for insight in resource consumption
 
 ## Run cqlsh from the container
 ```sh
-docker exec -it dse-stargate_backend_1 cqlsh
+docker exec -it dse-stargate-backend-1 cqlsh
 ```
 # Guardrails
 In DSE, Guardrails have been introduced to create configurable trip-wires in Cassandra that will either warn or error and block any operation that violates known anti-patterns. In DSE 6.8, DataStax is releasing the first set of Guardrails which include codified, best-practices such as:
